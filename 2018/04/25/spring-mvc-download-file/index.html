@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Spring MVC," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="文件下载踩坑记1.需求现在提了新需求，要求系统可以下载keytab文件，就是在keytab列表旁边加个链接，点击下载呗，有啥子。 1.5.自我认知的茶具不是需求难，是你太菜了-_- 2.基本思路1.后端这个事情应该完全是后端的事情嘛，首先keytab文件原先就有导出的操作，是通过ssh调用kadmin.local导出到kdc本地机器，继续使用scp在集群的机器中传输来传输去。导出已经做了，然后将数">
+<meta name="keywords" content="Spring MVC">
+<meta property="og:type" content="article">
+<meta property="og:title" content="spring mvc download file">
+<meta property="og:url" content="http://blog.xvan.top/2018/04/25/spring-mvc-download-file/index.html">
+<meta property="og:site_name" content="脑沟回强化器">
+<meta property="og:description" content="文件下载踩坑记1.需求现在提了新需求，要求系统可以下载keytab文件，就是在keytab列表旁边加个链接，点击下载呗，有啥子。 1.5.自我认知的茶具不是需求难，是你太菜了-_- 2.基本思路1.后端这个事情应该完全是后端的事情嘛，首先keytab文件原先就有导出的操作，是通过ssh调用kadmin.local导出到kdc本地机器，继续使用scp在集群的机器中传输来传输去。导出已经做了，然后将数">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-08-24T01:35:53.863Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="spring mvc download file">
+<meta name="twitter:description" content="文件下载踩坑记1.需求现在提了新需求，要求系统可以下载keytab文件，就是在keytab列表旁边加个链接，点击下载呗，有啥子。 1.5.自我认知的茶具不是需求难，是你太菜了-_- 2.基本思路1.后端这个事情应该完全是后端的事情嘛，首先keytab文件原先就有导出的操作，是通过ssh调用kadmin.local导出到kdc本地机器，继续使用scp在集群的机器中传输来传输去。导出已经做了，然后将数">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://blog.xvan.top/2018/04/25/spring-mvc-download-file/"/>
+
+
+
+
+
+  <title>spring mvc download file | 脑沟回强化器</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">脑沟回强化器</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Don't Panic</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://blog.xvan.top/2018/04/25/spring-mvc-download-file/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="xVan">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="脑沟回强化器">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">spring mvc download file</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-25T08:52:17+00:00">
+                2018-04-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="文件下载踩坑记"><a href="#文件下载踩坑记" class="headerlink" title="文件下载踩坑记"></a>文件下载踩坑记</h1><h1 id="1-需求"><a href="#1-需求" class="headerlink" title="1.需求"></a>1.需求</h1><p>现在提了新需求，要求系统可以下载keytab文件，就是在keytab列表旁边加个链接，点击下载呗，有啥子。</p>
+<h1 id="1-5-自我认知的茶具"><a href="#1-5-自我认知的茶具" class="headerlink" title="1.5.自我认知的茶具"></a>1.5.自我认知的茶具</h1><p>不是需求难，是你太菜了-_-</p>
+<h1 id="2-基本思路"><a href="#2-基本思路" class="headerlink" title="2.基本思路"></a>2.基本思路</h1><h2 id="1-后端"><a href="#1-后端" class="headerlink" title="1.后端"></a>1.后端</h2><p>这个事情应该完全是后端的事情嘛，首先keytab文件原先就有导出的操作，是通过ssh调用kadmin.local导出到kdc本地机器，继续使用scp在集群的机器中传输来传输去。导出已经做了，然后将数据传输到web服务器所在的机器。使用File读出，序列化后返回就ok啊。返回ResponseEntity。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">@RequestMapping(value = &quot;downloadKeytab&quot;, method = RequestMethod.POST)</span><br><span class="line">	public ResponseEntity&lt;byte[]&gt; downloadPricipal(String realm) throws IOException &#123;</span><br><span class="line">		String web_ip = IConfig.get(&quot;web_ip&quot;);</span><br><span class="line">		//export the .keytab file to local /root/keytabs</span><br><span class="line">		String cmd = &quot;/usr/sbin/kadmin.local -q &apos;xst -k /root/keytabs/tmp.keytab -norandkey &quot;+realm+&quot;&apos; &amp;&amp; &quot; +</span><br><span class="line">				&quot;scp /root/keytabs/tmp.keytab root@&quot;+web_ip+&quot;:/root&quot;;</span><br><span class="line">		cmd = cmd + &quot;\n&quot;;</span><br><span class="line">		String log = &quot;export &quot; + realm + &quot; to &quot; + &quot;/root/tmp.keytab&quot;;</span><br><span class="line">		List&lt;String&gt; rs = SSHUtil.sh(cmd);</span><br><span class="line"></span><br><span class="line">		File file = new File(&quot;/root/tmp.keytab&quot;);</span><br><span class="line">		byte[] body = null;</span><br><span class="line">		InputStream is = null;</span><br><span class="line">		try &#123;</span><br><span class="line">			is = new FileInputStream(file);</span><br><span class="line">		&#125; catch (FileNotFoundException e) &#123;</span><br><span class="line">			e.printStackTrace();</span><br><span class="line">		&#125;</span><br><span class="line">		body = new byte[is.available()];</span><br><span class="line">		is.read(body);</span><br><span class="line">		</span><br><span class="line">		HttpHeaders headers = new HttpHeaders();</span><br><span class="line">		headers.add(&quot;Content-Dipostion&quot;,&quot;attchement;filename=&quot; + file.getName());</span><br><span class="line">		HttpStatus statusCode= HttpStatus.OK;</span><br><span class="line">		headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);</span><br><span class="line">		ResponseEntity&lt;byte[]&gt; entity = new ResponseEntity&lt;byte[]&gt;(body, headers, statusCode);</span><br><span class="line">		return entity;</span><br></pre></td></tr></table></figure></p>
+<h2 id="2-前端"><a href="#2-前端" class="headerlink" title="2.前端"></a>2.前端</h2><p>前端菜的要名，面向google编程，实验了好几个才弄到一个能下载的js<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">function downloadKeytab(realm) &#123;</span><br><span class="line">	$.post(&apos;$&#123;basePath&#125;/principal/downloadKeytab.shtml&apos;, &#123;realm:realm&#125;, function(result)&#123;</span><br><span class="line">	    var blob=new Blob([array]);</span><br><span class="line">           var link=document.createElement(&apos;a&apos;);</span><br><span class="line">           link.style = &quot;display: none&quot;;</span><br><span class="line">           document.body.appendChild(link);</span><br><span class="line">           link.href=window.URL.createObjectURL(blob);</span><br><span class="line">           link.download=&quot;download.keytab&quot;;</span><br><span class="line">           link.click();</span><br><span class="line">           window.URL.revokeObjectURL(link);</span><br><span class="line">	&#125;);</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>
+<p>当然还遇到几个小坑，比如freemarker里${foo}怎么以字符串的形式传入(加’’)都得查半天，羞耻。</p>
+<h2 id="3-开始联调了，美滋滋"><a href="#3-开始联调了，美滋滋" class="headerlink" title="3.开始联调了，美滋滋"></a>3.开始联调了，美滋滋</h2><p>实验可以下载，激动，傻傻的严谨一把，用HxD比较下文件,竟然有个一个字节是错的，只有一个字节。<br>排除了自己犯傻、灵异、人品、程序重启后，我确定是代码实现有问题。</p>
+<h2 id="4-哪个环节的代码有问题"><a href="#4-哪个环节的代码有问题" class="headerlink" title="4.哪个环节的代码有问题"></a>4.哪个环节的代码有问题</h2><ul>
+<li>后端body byte数组，打印，没问题</li>
+<li>postman post,fiddler抓取（这样有个好处，可以绕过权限检测，直接用fiddler会返回权限不足的问题，postman不能看16进制，fiddler能，所以组合下）返回的数据还是没问题。那就是js数据处理的问题了</li>
+</ul>
+<h2 id="4-google你好"><a href="#4-google你好" class="headerlink" title="4.google你好"></a>4.google你好</h2><p> 以blob js file down搜，stackoverflow中有不少人说js那个实现会有corrupt的问题，一般说是解码的问题，有个js代码解码处理下<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">function base64ToArrayBuffer(base64) &#123;</span><br><span class="line">    var binaryString = window.atob(base64);</span><br><span class="line">    var binaryLen = binaryString.length;</span><br><span class="line">    var bytes = new Uint8Array(binaryLen);</span><br><span class="line">    for (var i = 0; i &lt; binaryLen; i++) &#123;</span><br><span class="line">        var ascii = binaryString.charCodeAt(i);</span><br><span class="line">        bytes[i] = ascii;</span><br><span class="line">    &#125;</span><br><span class="line">    return bytes;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>套进去，提示<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">//Uncaught DOMException: Failed to execute &apos;atob&apos; on &apos;Window&apos;: The string to be decoded contains characters outside of the Latin1 range.</span><br></pre></td></tr></table></figure></p>
+<h2 id="5-折磨"><a href="#5-折磨" class="headerlink" title="5.折磨"></a>5.折磨</h2><p>无数次重启tomcat后（改js不能热更新吧），终于想到了，把后端的数据用base64 encode处理为String，<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">String bodyStr = Base64.encodeBase64String(body);</span><br></pre></td></tr></table></figure></p>
+<p>然后用base64ToArrayBuffer decode回来，ok</p>
+<h2 id="6-感想"><a href="#6-感想" class="headerlink" title="6.感想"></a>6.感想</h2><p>小需求干掉大时间，cpu慢调试受阻？</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Spring-MVC/" rel="tag"># Spring MVC</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/12/28/优雅的在gitpage上的hexo插入图片/" rel="next" title="优雅的在github page上的hexo插入图片">
+                <i class="fa fa-chevron-left"></i> 优雅的在github page上的hexo插入图片
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/04/25/log-too-large/" rel="prev" title="日志系统膨胀处理">
+                日志系统膨胀处理 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">xVan</p>
+              <p class="site-description motion-element" itemprop="description">喵喵喵</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">8</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">10</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#文件下载踩坑记"><span class="nav-number">1.</span> <span class="nav-text">文件下载踩坑记</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-需求"><span class="nav-number">2.</span> <span class="nav-text">1.需求</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#1-5-自我认知的茶具"><span class="nav-number">3.</span> <span class="nav-text">1.5.自我认知的茶具</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-基本思路"><span class="nav-number">4.</span> <span class="nav-text">2.基本思路</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-后端"><span class="nav-number">4.1.</span> <span class="nav-text">1.后端</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-前端"><span class="nav-number">4.2.</span> <span class="nav-text">2.前端</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-开始联调了，美滋滋"><span class="nav-number">4.3.</span> <span class="nav-text">3.开始联调了，美滋滋</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-哪个环节的代码有问题"><span class="nav-number">4.4.</span> <span class="nav-text">4.哪个环节的代码有问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-google你好"><span class="nav-number">4.5.</span> <span class="nav-text">4.google你好</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-折磨"><span class="nav-number">4.6.</span> <span class="nav-text">5.折磨</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-感想"><span class="nav-number">4.7.</span> <span class="nav-text">6.感想</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xVan</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.3"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

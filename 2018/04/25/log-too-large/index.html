@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="sql,log," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="日志系统膨胀处理1.概述目前的系统有个审计模块，主要是记录大数据系统的各种日志，用来做追溯和审计，并不是数据库本身的日志。因为日志每次操作都会产生，所以不可避免的带来日志膨胀的问题，为了解决这个问题，必须要定时清理日志。 2.处理策略基本的思路很简单，就是删删删，按照日期，30天或者其他天数前的日志全部都要删除，而且要清除原始log，就是审计模块读取的源log。 3.实现策略最初的想法是在Java">
+<meta name="keywords" content="sql,log">
+<meta property="og:type" content="article">
+<meta property="og:title" content="日志系统膨胀处理">
+<meta property="og:url" content="http://blog.xvan.top/2018/04/25/log-too-large/index.html">
+<meta property="og:site_name" content="脑沟回强化器">
+<meta property="og:description" content="日志系统膨胀处理1.概述目前的系统有个审计模块，主要是记录大数据系统的各种日志，用来做追溯和审计，并不是数据库本身的日志。因为日志每次操作都会产生，所以不可避免的带来日志膨胀的问题，为了解决这个问题，必须要定时清理日志。 2.处理策略基本的思路很简单，就是删删删，按照日期，30天或者其他天数前的日志全部都要删除，而且要清除原始log，就是审计模块读取的源log。 3.实现策略最初的想法是在Java">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-08-24T01:35:53.863Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="日志系统膨胀处理">
+<meta name="twitter:description" content="日志系统膨胀处理1.概述目前的系统有个审计模块，主要是记录大数据系统的各种日志，用来做追溯和审计，并不是数据库本身的日志。因为日志每次操作都会产生，所以不可避免的带来日志膨胀的问题，为了解决这个问题，必须要定时清理日志。 2.处理策略基本的思路很简单，就是删删删，按照日期，30天或者其他天数前的日志全部都要删除，而且要清除原始log，就是审计模块读取的源log。 3.实现策略最初的想法是在Java">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://blog.xvan.top/2018/04/25/log-too-large/"/>
+
+
+
+
+
+  <title>日志系统膨胀处理 | 脑沟回强化器</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">脑沟回强化器</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Don't Panic</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://blog.xvan.top/2018/04/25/log-too-large/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="xVan">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="脑沟回强化器">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">日志系统膨胀处理</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-25T09:17:12+00:00">
+                2018-04-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="日志系统膨胀处理"><a href="#日志系统膨胀处理" class="headerlink" title="日志系统膨胀处理"></a>日志系统膨胀处理</h1><h2 id="1-概述"><a href="#1-概述" class="headerlink" title="1.概述"></a>1.概述</h2><p>目前的系统有个审计模块，主要是记录大数据系统的各种日志，用来做追溯和审计，并不是数据库本身的日志。<br>因为日志每次操作都会产生，所以不可避免的带来日志膨胀的问题，为了解决这个问题，必须要定时清理日志。</p>
+<h2 id="2-处理策略"><a href="#2-处理策略" class="headerlink" title="2.处理策略"></a>2.处理策略</h2><p>基本的思路很简单，就是删删删，按照日期，30天或者其他天数前的日志全部都要删除，而且要清除原始log，就是审计模块读取的源log。</p>
+<h2 id="3-实现策略"><a href="#3-实现策略" class="headerlink" title="3.实现策略"></a>3.实现策略</h2><p>最初的想法是在Java工程使用Schedule实现，评估了下觉的略繁琐，而且从架构角度上来看放在Web中搞这个有点别扭，就搜了下在数据库中处理的方法，然后现学现卖。实现分两块，数据库和shell。</p>
+<ul>
+<li>数据库中定时功能通过事件来实现，然后将各种判断和删除的编写成功函数方便调用。</li>
+<li>shell中将删除和判断的写成脚本，然后通过cron定时调用。</li>
+</ul>
+<h2 id="4-实现细节"><a href="#4-实现细节" class="headerlink" title="4.实现细节"></a>4.实现细节</h2><p>其实思路很简单，实现不太流利，都是现查现试，有些还得做实验，琐碎记录一些点</p>
+<h3 id="1-MySql自动调用事件"><a href="#1-MySql自动调用事件" class="headerlink" title="1.MySql自动调用事件"></a>1.MySql自动调用事件</h3><p>使用navicat（原谅写原生不熟）在“事件”中新建一个自动call的事件<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">call delete_audit;</span><br></pre></td></tr></table></figure></p>
+<p>计划标签上Every 1 Day，Start选一个你认为合适的日期。</p>
+<h3 id="2-MySql自动删除过期数据"><a href="#2-MySql自动删除过期数据" class="headerlink" title="2.MySql自动删除过期数据"></a>2.MySql自动删除过期数据</h3><p>依然使用navicat，函数中定义一个delete_audit<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">BEGIN</span><br><span class="line">	delete from bd_hbase_audit where DATE(processDate) &lt;= DATE(DATE_SUB(NOW(), INTERVAL 90 day));</span><br><span class="line">	...</span><br><span class="line">END</span><br></pre></td></tr></table></figure></p>
+<h3 id="3-id膨胀问题"><a href="#3-id膨胀问题" class="headerlink" title="3. id膨胀问题"></a>3. id膨胀问题</h3><p>问题2的实现是很简单，但是也带来一个问题，数据表的id是自增长的，如果一直删旧的加新的，岂不是会永远膨胀到爆表？目前大概就是这么几个策略。</p>
+<ul>
+<li>1.这条语句<em>TRUNCATE TABLE t_books_author;</em> 表中id是重置了，然后数据也没了，pass。</li>
+<li>2.仅仅<em>ALTER TABLE t_books_author auto_increment = 1; </em>数据是有了，但是新加数据并非从空闲的最小开始，而是还是从已有的最大+1开始，所以，没用。</li>
+<li>3.懒办法，将id改为bigint，目前的状态，每天增加的日志就那么多，几百年…当然是建立在日志量不会指数级增加的情况下，不算完美解决。</li>
+<li><ol>
+<li>建立一个临时的新表，将数据挨个从旧表导入，然后新表id按顺序重新排列。算是笨办法，有点烦，有点慢。</li>
+</ol>
+</li>
+<li>5.其实这算方法2的改进版，<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">BEGIN</span><br><span class="line">	set @num := 0;</span><br><span class="line">	update bd_hbase_auth SET id=@num := (@num+1);</span><br><span class="line">	alter table bd_hbase_auth auto_increment=1;</span><br><span class="line">END</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h3 id="4-到达某个点再触发reset-id"><a href="#4-到达某个点再触发reset-id" class="headerlink" title="4. 到达某个点再触发reset_id"></a>4. 到达某个点再触发reset_id</h3><p>主要是select到的值怎么到变量里<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">BEGIN</span><br><span class="line">	select id into @id from bd_hbase_auth ORDER BY id desc limit 1;</span><br><span class="line">  if @id&gt;=63 THEN</span><br><span class="line">		call reset_hbase_auth_id;</span><br><span class="line">	end if;</span><br><span class="line">END</span><br></pre></td></tr></table></figure></p>
+<h3 id="5-删除过期原始日志"><a href="#5-删除过期原始日志" class="headerlink" title="5. 删除过期原始日志"></a>5. 删除过期原始日志</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">invalid_day=90</span><br><span class="line">hdfs_dir=&quot;/var/log/hadoop-hdfs/&quot;</span><br><span class="line">hive_dir=&quot;/var/log/hive/&quot;</span><br><span class="line">hbase_dir=&quot;/var/log/hbase/&quot;</span><br><span class="line"></span><br><span class="line">#xargs=&quot;xargs rm -f&quot;</span><br><span class="line"></span><br><span class="line">find $hdfs_dir -mtime +$invalid_day -type f -name &quot;*hdfs*&quot; | $xargs</span><br><span class="line">find $hive_dir -mtime +$invalid_day -type f -name &quot;*hive*&quot; | $xargs</span><br><span class="line">find $hbase_dir -mtime +$invalid_day -type f -name &quot;*hbase*&quot; | $xargs</span><br></pre></td></tr></table></figure>
+<p>其中的点一个是mtime的用法，一个是find匹配，用find正则匹配，正则都写好了，找个在线测试也对，但是就是不好使，可能使用有误，转到-name的模糊匹配，先凑合用。</p>
+<h3 id="6-定期调用日志"><a href="#6-定期调用日志" class="headerlink" title="6. 定期调用日志"></a>6. 定期调用日志</h3><p>应该直接再cron中添加任务，但是使用脚本部署的时候编辑有点麻烦，正好cron有个cron.daily的文件夹，所以一个cp将步骤5的脚本拷贝过去。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/sql/" rel="tag"># sql</a>
+          
+            <a href="/tags/log/" rel="tag"># log</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/04/25/spring-mvc-download-file/" rel="next" title="spring mvc download file">
+                <i class="fa fa-chevron-left"></i> spring mvc download file
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/04/25/blood-sql-count/" rel="prev" title="count引发的血案">
+                count引发的血案 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">xVan</p>
+              <p class="site-description motion-element" itemprop="description">喵喵喵</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">8</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">10</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#日志系统膨胀处理"><span class="nav-number">1.</span> <span class="nav-text">日志系统膨胀处理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-概述"><span class="nav-number">1.1.</span> <span class="nav-text">1.概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-处理策略"><span class="nav-number">1.2.</span> <span class="nav-text">2.处理策略</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-实现策略"><span class="nav-number">1.3.</span> <span class="nav-text">3.实现策略</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-实现细节"><span class="nav-number">1.4.</span> <span class="nav-text">4.实现细节</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-MySql自动调用事件"><span class="nav-number">1.4.1.</span> <span class="nav-text">1.MySql自动调用事件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-MySql自动删除过期数据"><span class="nav-number">1.4.2.</span> <span class="nav-text">2.MySql自动删除过期数据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-id膨胀问题"><span class="nav-number">1.4.3.</span> <span class="nav-text">3. id膨胀问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-到达某个点再触发reset-id"><span class="nav-number">1.4.4.</span> <span class="nav-text">4. 到达某个点再触发reset_id</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-删除过期原始日志"><span class="nav-number">1.4.5.</span> <span class="nav-text">5. 删除过期原始日志</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-定期调用日志"><span class="nav-number">1.4.6.</span> <span class="nav-text">6. 定期调用日志</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xVan</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.3"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
